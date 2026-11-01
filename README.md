@@ -66,6 +66,30 @@ npx svjeez frames scene.tsx --times 0,1,2 --sheet
 
 svjeez runs on Node 20+ or Bun and has no runtime dependencies. On Node, install `tsx` so it can load `.tsx`. Frames need `playwright-core`. Using a coding agent? `npx svjeez skill --install` gives it the scene-writing skill.
 
+## PR walkthroughs
+
+Start from a small, editable scene instead of rebuilding its timing and theme:
+
+```sh
+npx svjeez skill --install
+cp .agents/skills/svjeez/examples/pr-walkthrough.tsx walkthrough.tsx
+npx svjeez review walkthrough.tsx --out review
+```
+
+The [walkthrough starter](packages/svjeez/skills/svjeez/examples/pr-walkthrough.tsx)
+introduces context, demonstrates one change, and holds a useful outcome. It uses
+existing timeline and adaptive-theme helpers, system fonts, and no external assets.
+
+`review` writes the original SVG, a frozen still, and light/dark frame sheets
+showing the scene inside an `<img>`, plus native reduced-motion previews. Open the
+images to check the explanation; generating them is not an automatic quality or
+accessibility verdict. Use `--times 0,3,7` to inspect particular beats, or `--count`
+to choose the number of samples. Like `frames`, it needs Playwright and Chromium.
+Everything stays local: the command does not upload assets or edit pull requests.
+The default skill destination is the shared `.agents/skills` directory, not a
+particular assistant's configuration. Use `--dir` for a client's own discovery
+path when needed, for example `svjeez skill --install --dir .claude/skills`.
+
 ## What's in the box
 
 - `motion()` timelines, recipes like `enter`, `draw` and `wiggle`, and `sampled()` to bake physics into keyframes

@@ -1,6 +1,6 @@
-import { REDUCED_MOTION } from "./css";
 import { num } from "./format";
 import type { Seconds } from "./motion";
+import { REDUCED_MOTION } from "./reduced-motion";
 
 export interface RestyleOptions {
   /** CSS added after the scene's own, so its rules win: a scheme's `--base00`…`--base0F`, for one. */

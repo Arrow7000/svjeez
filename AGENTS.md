@@ -51,6 +51,7 @@ bun run test:package              # packs the tarball, lints it, and type-checks
 bun run build:package             # the npm build into package-dist/, with the root README and LICENSE beside it
 bun run dev <file.tsx>            # live preview with reload and a scrubber
 bun run render-png <file> --times 0,1,2 --sheet --out frames/
+bun src/cli.ts review <file> --out review/  # SVG, still, light/dark image-context previews
 ```
 
 `examples/` has its own `build`, `dev`, `render-png`, `render-video`, `test`, `test:node` and `typecheck`. `bun run build [name ...]` there writes `examples/dist/`, as in `bun run build readme/hero`. Its `tsconfig.json` maps `svjeez` to the library's `src/`, so the examples always run the source.
@@ -93,6 +94,7 @@ Each package's source explains its own internals. These are the rules that aren'
 - Keep the library free of Astro. Astro code belongs in `packages/astro/`.
 - Scenes that show code, an explainer or a terminal take `theme`, `css` and `mono` from `examples/style.ts`, and the site's code blocks and playground read the same palette through `site/src/styles/code.ts`. `examples/tests/style.test.ts` fails on a scene that brings its own code palette or mono font.
 - Check visual changes by looking at frames: run `bun run render-png <file> --sheet`, then open `sheet.png`. Passing tests don't show timing or layout bugs.
+- For images embedded in PRs or READMEs, use `svjeez review <file> --out <scratch-dir>` and inspect both schemes and the native reduced-motion previews. Ordinary `frames` captures inline SVG; a frozen still is not proof that the original image honors reduced motion.
 
 ## Releasing
 

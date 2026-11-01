@@ -4,6 +4,9 @@ import { num } from "./format";
 import { moving, type Key } from "./keys";
 import { ease, type Ease, type Seconds } from "./motion";
 import { formatProperty, isProperty } from "./properties";
+import { REDUCED_MOTION } from "./reduced-motion";
+
+export { REDUCED_MOTION } from "./reduced-motion";
 
 /** How a lane's keys become declarations: its own value, a visibility toggle for a hard 0/1 opacity cut, or only the dash offset of `draw`. */
 export type Emit = "value" | "visibility" | "dash";
@@ -127,9 +130,6 @@ export const baseRule = (canvas: Canvas): string =>
 /** Motions inside `<Once>` play one time, on `--t1`, the clock `restyle({ onceAt })` sets, which falls back to the scene's `--t0`. */
 export const onceRule = (canvas: Canvas): string =>
   `.${canvas.prefix}o{animation-iteration-count:1;animation-delay:var(--t1,var(--t0,0s))}`;
-
-/** Opens the block that holds the still frame under reduced motion, where `restyle` finds it. */
-export const REDUCED_MOTION = "@media (prefers-reduced-motion:reduce){";
 
 /** Under reduced motion, hold every CSS animation at `stillAt` and swap SMIL filters for their still twins. */
 export const freezeRule = (canvas: Canvas, hasRules: boolean, stills: readonly string[]): string =>

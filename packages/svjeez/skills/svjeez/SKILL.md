@@ -1,6 +1,6 @@
 ---
 name: svjeez
-description: Write animated SVGs with svjeez, a TypeScript library that compiles motions to CSS and SMIL with no runtime JavaScript. Use when asked to make, edit or debug an animated SVG, a svjeez scene, a code explainer, a terminal recording, or an animated flowchart, sequence, state or lanes diagram in TypeScript, or when a project imports svjeez.
+description: Write animated SVGs with svjeez, a TypeScript library that compiles motions to CSS and SMIL with no runtime JavaScript. Use when asked to make, edit or debug an animated SVG, a svjeez scene, a code explainer, a pull-request walkthrough, a terminal recording, or an animated flowchart, sequence, state or lanes diagram in TypeScript, or when a project imports svjeez.
 ---
 
 # svjeez
@@ -168,6 +168,7 @@ Read the one that matches the task. `svjeez skill --install` copies them.
 | Photos, web fonts, text measuring, outlined text | [`references/images-fonts.md`](references/images-fonts.md) |
 | Hand-drawn strokes, handwriting | [`references/ink.md`](references/ink.md) |
 | Code walkthroughs, terminals, annotations, camera, themes, recoloring, pausing or scrubbing a rendered SVG from a page | [`references/explainers.md`](references/explainers.md) |
+| A copyable PR walkthrough: context before change, one moving mechanism, a persistent outcome, review checks | [`references/pr-walkthrough.md`](references/pr-walkthrough.md) |
 | Flowchart, sequence, state, tree, lanes, `flow` | [`references/diagrams.md`](references/diagrams.md) |
 | Pixel-art voxel scenes | [`references/voxels.md`](references/voxels.md) |
 | Tabler and Lucide icons, drawn on stroke by stroke (`@svjeez/icons`) | [`references/icons.md`](references/icons.md) |
@@ -189,4 +190,5 @@ Each file in `examples/` renders. Copy one and change it.
 - `examples/orbit.tsx`: `sampled()` orbit, a `.loop()` spin, a `wiggle` breath.
 - `examples/review-flow.tsx`: a typed `flowchart`, a `flow` comet, an adaptive theme.
 - `examples/explainer.tsx`: `code`, `morph`, `timeline`, `Focus`, `Marker`, `Callout`.
+- `examples/pr-walkthrough.tsx`: a portable context → change → outcome diagram, existing timeline helpers, adaptive colors, a final reduced-motion frame.
 - `examples/terminal.tsx`: `appWindow` with a typed `terminal` session.

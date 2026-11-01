@@ -757,6 +757,22 @@ Input: a string (split on `\n`) or `CodeTokens` (`CodePiece[][]`). A piece is a 
 | addScript(path) | Promise<void> | Loads a classic script file into the page. |
 | close() | Promise<void> | Closes the browser. |
 
+#### ReviewOptions / Review / ReviewImages — [P]
+*Serves:* G-3, G-5, G-9
+`ReviewOptions` combines `FrameTimes` with `scale?` (default 1), `columns?` (default 4), and `executablePath?`. Times must be nonempty, finite and non-negative; count and columns are positive integers. Both color schemes and sheets are always produced.
+
+| Field | Type | Notes |
+|---|---|---|
+| svg | string | Exact unchanged input. |
+| still | string | Separate `restyle(svg, {still:true})` copy. |
+| width, height, scale, duration | number | Resolved size, scale and playback seconds. |
+| reducedMotion | "declared" \| "not-declared" | Whether the compiled SVG contains its authored reduction query; not a compliance verdict. |
+| warnings | readonly string[] | Validation warnings and a warning when no reduction is declared. |
+| light, dark | ReviewImages | One bundle per scheme. |
+| ReviewImages.frames | readonly Frame[] | Exact requested samples, captured inside images. |
+| ReviewImages.sheet | Uint8Array | Labelled PNG contact sheet. |
+| ReviewImages.reducedMotionPng | Uint8Array | Unmodified original image under the native browser preference. |
+
 #### Frames / Frame — [D]
 *Serves:* G-3
 | Field | Type | Notes |
@@ -1345,6 +1361,9 @@ These hold across packages. Each area's own invariants follow.
 - A scene served by `getScene()` has a content-hashed URL: equal SVG text gives an equal URL — [D] — R-232
 - The shipped skill's error table lists only messages that exist in `src/`; every doc path it mentions exists; every reference is routed from SKILL.md — [D] — R-223
 - The root `bun test` always fails with a pointer to `bun run test` — [D] — R-241
+- Review produces evidence for image embedding, not an automatic visual-quality or accessibility verdict; it preserves the input SVG and captures both color schemes — [P] — R-372
+- Native reduced-motion review uses the unmodified image and a separate browser-level preference, not a restyled still or only outer-page emulation — [P] — R-373
+- Review output stays local, refuses every existing destination (including empty directories and symlinks), and never publishes assets — [P] — R-374
 
 ### Live editor
 
@@ -1602,7 +1621,7 @@ Reads an SVG font by regex: `<font>`, `<font-face>` (`units-per-em`, `font-famil
 
 **Loop length.** Collect CSS animation durations (ms) from `getAnimations()` and SMIL `dur` attributes of `animate, animateTransform, animateMotion, set`. `longest = max`. For k = 1..1000: `loop = longest*k`; accept when every period `p` fits: `cycles = round(loop/p) > 0` and `|loop - cycles*p| < max(1, cycles*0.5 + 0.01)` ms (emitted durations are rounded to 1 ms). Else fall back to `longest`. Result in seconds; `0` when nothing animates.
 
-**CLI command table.** `svg | frames | video | skill`, dispatched from a `Map`. Unknown or missing command prints USAGE, exit 1. Any thrown error prints `error.stack ?? message`, exit 1.
+**CLI command table.** `svg | frames | review | video | skill`, dispatched from a `Map`. Unknown or missing command prints USAGE, exit 1. Any thrown error prints `error.stack ?? message`, exit 1. The review extension is proposed; existing command meanings are unchanged except the agent-neutral skill-install destination described under R-223.
 
 **Scene loading (CLI).** `.svg` is read as text. Anything else is `import(fileURL)`; on `ERR_UNKNOWN_FILE_EXTENSION` it registers `tsx/esm/api` (resolved from `cwd/package.json`, else bare) and retries. The module's default export is a string, or a function (sync or async) returning a string; else the CLI fails.
 
@@ -3882,10 +3901,11 @@ renderVideo(svg, {format,fps,loops,quality,scale,colorScheme,background}); print
 *Code:* `src/cli.ts` (`skillCommand`)
 ```pseudo
 no --install : print skills/svjeez/SKILL.md to stdout, byte for byte
---install [--dir D (default .claude/skills)] : cp -r skills/svjeez -> D/svjeez, overwriting; rerun is safe
+--install [--dir D (default .agents/skills)] : cp -r skills/svjeez -> D/svjeez, overwriting; rerun is safe
 print "installed the svjeez skill in <relative path>"
 ```
 Installs SKILL.md, `references/`, `examples/` (the examples carry their own JSX pragma).
+The default destination is shared across agents. Explicit `--dir` retains client-specific and global installation paths.
 *Criterion:* R-223
 
 #### Unknown command and failures exit 1 — [D]
@@ -3907,6 +3927,48 @@ every references/* file name appears in SKILL.md
 every row of SKILL.md's "Runtime errors" table appears (split on "…") on one line in some src/**/*.ts
 ```
 *Criterion:* R-225
+
+#### Review bundles show the image embedding context — [P]
+*Serves:* G-3, G-5, G-9
+*Code:* `src/frames.ts`, `src/cli.ts`
+```pseudo
+validate SVG dimensions, scale, and nonempty finite non-negative times or positive count before launching
+preserve the input SVG unchanged; make a separate restyle(svg, {still:true}) copy
+read duration from the compiled scene
+for each requested time and each light/dark scheme:
+  restyle(svg, {at:time, paused:true}) -> decoded img -> PNG
+lay out the captured PNGs on a labelled sheet per scheme
+close browsers on success and failure
+```
+These frozen samples establish how the compiled frame is embedded; they are not a claim that untouched animation playback was recorded. A still exported from a scene that disables reduced motion is not a newly authored accessible conclusion.
+*Criterion:* R-372
+
+#### Native reduced-motion review captures the original image — [P]
+*Serves:* G-5, G-3
+*Code:* `src/frames.ts`
+```pseudo
+start a separate browser with --force-prefers-reduced-motion, including the Chrome fallback
+for each light/dark scheme:
+  load the ORIGINAL input SVG as an image under reduced motion
+  await decode and capture its native picture
+close the browser on success and failure
+```
+Chromium's outer-page media emulation does not reliably propagate to SVG image resources. The browser-level preference is distinct from applying `restyle({still:true})`. A scene that opts out of reduction remains opted out: review exports what it actually does rather than silently repairing it or declaring compliance.
+*Criterion:* R-373
+
+#### Review is a local, non-overwriting CLI workflow — [P]
+*Serves:* G-9, G-3
+*Code:* `src/cli.ts`
+```pseudo
+load a trusted SVG or scene module through the existing loader
+reject invalid review arguments and ANY existing output destination (directory, file or symlink)
+render the complete review bundle before writing its assets
+stage and publish scene.svg, still.svg, review.json, and light/ plus dark/ PNGs
+each scheme contains frame-NN-<time>s.png, sheet.png and reduced-motion.png
+print output paths; no network publishing, Git credentials or PR editing
+```
+The command remains an authoring tool, not an executor for untrusted TypeScript or an automated readability judgment.
+*Criterion:* R-374
 
 #### Skill examples render on Node 20 and 22 — [D]
 *Serves:* G-6, G-9
@@ -6136,6 +6198,7 @@ None owned. (`packages/svjeez/test/R-225/skill-examples-render.test.ts` renders 
 | Export (module) | Signature (short) | Legal when | Effect | Errors |
 |---|---|---|---|---|
 | renderFrames (svjeez/frames) | `(svg, FrameOptions) => Promise<Frames>` | Valid size, scale, scheme, times xor count, sheet columns; Chromium present | PNG per time, optional sheet; browser closed | "renderFrames() needs …" (see Errors) |
+| renderReview (svjeez/frames) | `(svg, ReviewOptions) => Promise<Review>` | Valid SVG, size, scale, nonempty times xor count and columns; Chromium present | Original, still and both scheme image-context bundles, with native reduced-motion PNGs; browsers closed | Named validation, image-load or launch error |
 | openScene (svjeez/frames) | `(svg, SceneOptions, caller?) => Promise<Scene>` | as above | Paused scene in a secure page | "<caller> needs …" |
 | seek (svjeez/page) | `(time, root?) => void` | Runs in a page | Pauses and sets every CSS/SMIL animation | none |
 | loopLength (svjeez/page) | `(root?) => Seconds` | Runs in a page | One loop in seconds, 0 if nothing animates | none |
@@ -6151,6 +6214,7 @@ None owned. (`packages/svjeez/test/R-225/skill-examples-render.test.ts` renders 
 |---|---|
 | `svjeez svg <file> [--out f]` | Compile to an SVG on stdout or a file; warnings to stderr. |
 | `svjeez frames <file> [--times … \| --count n] [--out dir] [--sheet] [--columns n] [--scale n] [--color-scheme s] [--background css]` | PNGs (and `sheet.png`) in a directory. |
+| `svjeez review <file> [--times … \| --count n] [--out dir] [--columns n] [--scale n]` | Original SVG, still, review metadata, both scheme image frame series/sheets and native reduced-motion previews; refuses existing output paths. |
 | `svjeez video <file> [--out f] [--format mp4\|webm] [--fps n] [--loops n] [--quality q] [--scale n] [--color-scheme s] [--background css]` | Encodes through `@svjeez/video`. |
 | `svjeez skill [--install [--dir d]]` | Prints or installs the agent skill. |
 | `bun run dev <file.tsx>` (svjeez) | Live preview with scrubber. |

@@ -1,20 +1,33 @@
 #!/usr/bin/env node
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  rmdir,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
-import { basename, extname, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { renderFrames, type FrameTimes } from "./frames";
+import { renderFrames, renderReview, type FrameTimes } from "./frames";
 import { validateSvg } from "./validate";
 
 const USAGE = `usage:
   svjeez svg <file> [--out file.svg]
-  svjeez skill [--install [--dir .claude/skills]]
+  svjeez skill [--install [--dir .agents/skills]]
   svjeez frames <file> [--times 0,0.5,1 | --count 6] [--out frames/] [--sheet] [--columns 4 (implies --sheet)] [--scale 2] [--color-scheme system|light|dark] [--background css]
+  svjeez review <file> [--times 0,0.5,1 | --count 6] [--scale 2] [--columns 4] [--out review/]
   svjeez video <file> [--out scene.mp4] [--format mp4|webm] [--fps 30] [--loops 1] [--quality low|medium|high] [--scale 2] [--color-scheme system|light|dark] [--background css]
 
 <file> is an .svg, or a module whose default export is an SVG string or a function returning one.
-Times are playback seconds. Without --times, frames takes --count frames (default 6) across one loop.
+Times are playback seconds. Without --times, frames and review take --count frames (default 6) across one loop.
+review writes scene.svg, still.svg, review.json, and light/dark image frames, sheets and native reduced-motion previews.
+Its output directory must not already exist. The bundle is review evidence, not a pixel-quality pass.
 video encodes --loops loops of the scene, through @svjeez/video. Its format follows --out's extension, else mp4.
 --background transparent keeps alpha, in webm only.
 On Node, .tsx files load through tsx when it is installed.
@@ -270,6 +283,103 @@ const framesCommand = async (args: string[]): Promise<void> => {
   console.log(`loop ${Number(duration.toFixed(3))}s, ${colorScheme}\n${written.join("\n")}`);
 };
 
+/** R-374: finish capture and stage every file before publishing a new directory. Never replace user files. */
+const reviewCommand = async (args: string[]): Promise<void> => {
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      times: { type: "string", short: "t" },
+      count: { type: "string", short: "n" },
+      scale: { type: "string" },
+      columns: { type: "string" },
+      out: { type: "string", short: "o", default: "review" },
+    },
+  });
+
+  if (positionals.length !== 1) fail(`svjeez review needs exactly one scene file.\n${USAGE}`);
+
+  const timing = when(values.times, values.count);
+  const scale = number("scale", values.scale);
+  const columns = number("columns", values.columns);
+  const out = resolve(values.out);
+
+  const existing = await lstat(out).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+  });
+
+  if (existing)
+    fail(
+      `Review output ${values.out} already exists. Choose a new directory; no files were changed.`,
+    );
+
+  const review = await renderReview(await loadSvg(positionals[0]!), { ...timing, scale, columns });
+
+  for (const warning of review.warnings) console.warn(`warning: ${warning}`);
+  await mkdir(dirname(out), { recursive: true });
+  const staging = await mkdtemp(join(dirname(out), ".svjeez-review-"));
+  let reserved = false;
+
+  try {
+    await writeFile(join(staging, "scene.svg"), review.svg);
+    await writeFile(join(staging, "still.svg"), review.still);
+
+    for (const scheme of ["light", "dark"] as const) {
+      const dir = join(staging, scheme);
+      await mkdir(dir);
+
+      for (const [index, { time, png }] of review[scheme].frames.entries())
+        await writeFile(
+          join(
+            dir,
+            `frame-${String(index).padStart(2, "0")}-${time.toFixed(3).replace(".", "_")}s.png`,
+          ),
+          png,
+        );
+
+      await writeFile(join(dir, "sheet.png"), review[scheme].sheet);
+      await writeFile(join(dir, "reduced-motion.png"), review[scheme].reducedMotionPng);
+    }
+
+    await writeFile(
+      join(staging, "review.json"),
+      `${JSON.stringify(
+        {
+          width: review.width,
+          height: review.height,
+          scale: review.scale,
+          duration: review.duration,
+          times: review.light.frames.map((frame) => frame.time),
+          context: "img",
+          schemes: ["light", "dark"],
+          reducedMotion: review.reducedMotion,
+          nativeReducedMotionSource: "scene.svg",
+          warnings: review.warnings,
+          note: "Review evidence, not a pixel-quality or accessibility pass.",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    // mkdir is exclusive even if another writer created an empty directory during capture. Renaming
+    // over our own empty reservation publishes the complete bundle; a nonempty target fails safely.
+    await mkdir(out);
+    reserved = true;
+    await rename(staging, out);
+    reserved = false;
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+
+    // rmdir never removes files a different writer might have added to the reserved directory.
+    if (reserved) await rmdir(out).catch(() => {});
+  }
+
+  console.log(
+    `${values.out}: loop ${Number(review.duration.toFixed(3))}s, light + dark, image context\nNative reduced motion: ${review.reducedMotion}; review evidence, not a pixel-quality pass.`,
+  );
+};
+
 // package-dist/cli.js and src/cli.ts both sit one level under the package root.
 const SKILL = fileURLToPath(new URL("../skills/svjeez", import.meta.url));
 
@@ -278,7 +388,7 @@ const skillCommand = async (args: string[]): Promise<void> => {
     args,
     options: {
       install: { type: "boolean" },
-      dir: { type: "string", default: join(".claude", "skills") },
+      dir: { type: "string", default: join(".agents", "skills") },
     },
   });
 
@@ -296,6 +406,7 @@ const skillCommand = async (args: string[]): Promise<void> => {
 const COMMANDS = new Map([
   ["svg", svgCommand],
   ["frames", framesCommand],
+  ["review", reviewCommand],
   ["video", videoCommand],
   ["skill", skillCommand],
 ]);

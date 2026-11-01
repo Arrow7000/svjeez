@@ -2,6 +2,16 @@
 
 Dated design changes, newest first. This is the only doc that records what something used to be.
 
+### 2026-11-01 — Local image review and a portable walkthrough starter
+
+`review` groups the repeated work of exporting an SVG, a still, and light/dark image-context previews. Ordinary `frames` continues to seek inline SVG exactly as before. The review extension samples frozen copies in an image and separately captures the original SVG in a browser launched with native reduced motion; outer-page emulation alone does not reliably reach SVG image resources. R-372–R-374 describe the extension, with rationale D-132. The tool neither publishes assets nor declares an explanation correct.
+
+The shipped PR walkthrough composes existing timeline and theme helpers instead of introducing a new storyboard or card interface (D-133, R-225). Its context → change → outcome sequence and held final frame make the authoring pattern discoverable. The new interface details remain proposed for designer review; no release or publication behavior changes.
+
+The designer requested shared skills for other agents too. The default `skill --install` destination changes from `.claude/skills` to `.agents/skills`; explicit `--dir` destinations, including Claude's, remain supported (D-134, R-223). This changes the default installation location, not the skill format or existing client configuration.
+
+SVG restyling and CSS emission share their reduced-motion marker through a dependency-free internal module. Restyling does not import the CSS compiler merely for that string, so frame-only consumers do not acquire the compiler's source/type dependencies. The emitted marker and existing restyle behavior are unchanged.
+
 ### 2026-10-30 — Tests move into one directory per criteria row
 
 Every test that proves a criteria row now lives in `test/<ID>/` of the package that owns the code, and asserts only that row. A test that asserted several rows was split, with shared setup in `test/helpers/`. Tests that prove no row went to `test/unit/` and `test/integration/`. `packages/svjeez/tests/` became `packages/svjeez/test/`, as in every other package. `packages/svjeez/test/unit/criteria.test.ts` now fails when CRITERIA.md and the directories disagree. Moving the tests settled three rows: R-236 had no test of its own and is `not yet covered`, R-237 is checked by `test:package` and is `manual`, and R-99's only test checked anchoring, so it moved into R-155 and R-99 is `not yet covered`. No assertion was dropped. Each package's `expect()` count is the same or higher.

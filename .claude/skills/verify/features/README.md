@@ -33,6 +33,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 - [Compile a scene to SVG](./compile-svg.md): `svjeez svg`, to a file or stdout, with warnings and load errors.
 - [Render frames](./render-frames.md): `svjeez frames`, PNGs at chosen times or counts, contact sheets, color schemes.
+- [Review an image](./review-image.md): `svjeez review`, original SVG, still, light/dark image-context sheets and native reduced-motion previews.
 - [Live preview](./dev-preview.md): `bun run dev <file.tsx>`, playback, pause, scrubbing, rebuild on save, the error panel.
 - [Render video](./render-video.md): `svjeez video`, MP4 or WebM through `@svjeez/video`.
 - [Scene-writing skill](./skill.md): `svjeez skill`, printing it and installing it with references and examples.

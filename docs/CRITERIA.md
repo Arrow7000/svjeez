@@ -237,7 +237,7 @@ Each `automated` R-row owns a directory `test/R-n/` in the package that owns the
 | R-220 | `svjeez svg` with and without `--out`, with a warning-producing scene | File vs stdout; `warning:` lines on stderr | not yet covered |
 | R-221 | `--color-scheme sepia`; `--times` and `--count` together; `--columns 3` alone | Exit 1 with the message before any browser; sheet implied by `--columns`; file names `frame-00-0_000s.png` | automated |
 | R-222 | `video` with no `@svjeez/video`; `--format webm --out s.mp4`; packed consumer runs `svjeez video` | Named install error; mismatch error; `scene.webm` has 5 packets | automated |
-| R-223 | `svjeez skill`; `skill --install --dir d` twice | stdout equals SKILL.md; `examples/` and `references/` listings equal the shipped ones | automated |
+| R-223 | `svjeez skill`; default `skill --install`; `skill --install --dir d` twice | stdout equals SKILL.md; default writes `.agents/skills/svjeez` without creating `.claude`; explicit destinations retain the complete shipped examples/references and repeated installation | automated |
 | R-224 | `svjeez render x`; `svjeez` with no args | Exit 1, usage text containing `svjeez frames <file>` | automated |
 | R-225 | The shipped skill | Examples render valid animated SVG; every mentioned path exists; every reference routed; every runtime-error row found in `src/` | automated |
 | R-226 | `test:node` on Node 20 and 22 | All examples render; exit 0 | manual — run `npm run test:node` under Node 20 and 22 (CI does) |
@@ -386,6 +386,9 @@ Each `automated` R-row owns a directory `test/R-n/` in the package that owns the
 | R-369 | Two-step derivation | Equals on one x; stack spacing; align by id; errors | automated |
 | R-370 | Counter changes | One glyph per digit per place; digit places; roll translates; sign place; errors | automated |
 | R-371 | Any output | No script; deterministic bytes | automated |
+| R-372 | Review a compiled scene at explicit times or a count | Original SVG and authored still preserved; light/dark frame series and sheets capture frozen copies inside images; invalid capture options fail before launch | automated |
+| R-373 | Review an original animated image with an authored reduced-motion frame, and one that disables reduction | Separate native reduced-motion browser captures the unmodified image in both schemes; the preview reflects what the scene declares, not a substituted paused copy | automated |
+| R-374 | `svjeez review` with a scene module or SVG, invalid arguments, and an occupied output directory | Local bundle paths printed; original bytes preserved; clear failure without overwriting existing output; no upload or PR edit | automated |
 
 ## U — Readability
 

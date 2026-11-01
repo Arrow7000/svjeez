@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Drive svjeez the way a user does and capture proof. Covers the svjeez CLI (svg, frames, video, skill) and the live dev preview with its scrubber, run from the workspace source. Use to confirm a change to the compiler, the CLI, the preview or an example works in the real tool, not just in tests.
+description: Drive svjeez the way a user does and capture proof. Covers the svjeez CLI (svg, frames, review, video, skill) and the live dev preview with its scrubber, run from the workspace source. Use to confirm a change to the compiler, the CLI, the preview or an example works in the real tool, not just in tests.
 ---
 
 # Verify svjeez

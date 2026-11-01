@@ -539,11 +539,27 @@ Authors call these from scene source and put the returned nodes in the tree. The
 - **Why:** `render()` always emits a viewBox, so the regex works for compiled scenes; the inconsistency with frames (width/height) is unexamined.
 - **Evidence:** `Source: packages/vite/src/scene.ts vs src/frames.ts size()`
 
+### D-132 Local review bundles exercise SVG image embedding — *Proposed*
+- **Alternatives:** repeat separate SVG/still/light/dark commands by hand; assume inline frame captures prove image behavior; add a GitHub publisher.
+- **Why:** A small review interface hides repeated capture setup while preserving the existing drawing and frame interfaces. Frozen image samples show exact beats, and a separate native reduced-motion browser shows the untouched image's preference behavior. The distinction prevents a transformed still from being mistaken for accessibility proof (G-3, G-5, G-9). The workflow is local and keeps Playwright optional (G-6).
+- **Evidence:** `Source: src/frames.ts and src/cli.ts; R-372, R-373 and R-374 tests`. Chromium image resources require a browser-level reduced-motion preference rather than only outer-page emulation.
+
+### D-133 A walkthrough starter composes existing helpers — *Proposed*
+- **Alternatives:** a new storyboard DSL, a card/presentation API, or a scaffolding command.
+- **Why:** Existing `timeline`, `readingTime`, persistent entrances and adaptive themes already express the useful pattern. A portable example exposes those helpers without constraining different visual mechanisms or enlarging the public drawing interface (G-8, G-9). `skill --install` already distributes examples.
+- **Evidence:** `Source: skills/svjeez/examples/pr-walkthrough.tsx and its routed reference; R-225 tests`.
+
+### D-134 Skills install to an agent-neutral directory by default — *Decided*
+- **Alternatives:** make `.claude/skills` the default; maintain a separate skill copy for each client; add a client configuration manager.
+- **Why:** The designer explicitly requires skills for other agents, not only Claude. `.agents/skills` is the shared discovery convention; `--dir` remains the escape hatch for client-specific locations, including Claude. The portable skill content stays identical rather than drifting across copies (G-9).
+- **Evidence:** Designer instruction on 2026-11-01; `src/cli.ts` and R-223 installation tests.
+
 #### Deliberately left out
 - A bundled Chromium or any dependency in `svjeez` — the core stays dependency-free (G-6; AGENTS.md "Rules").
 - ffmpeg — Mediabunny in Chromium instead (D-78).
 - Real-time recording — seeking is exact (D-74).
-- Reduced-motion rendering in frames — frames use `no-preference`; the reduced-motion still is read from the SVG by posters (D-80).
+- Changing ordinary frame capture to reduced motion — `frames` keeps exact-time `no-preference` behavior; native image previews belong to the review extension (D-132).
+- Automatic readability/accessibility pass/fail or GitHub publishing in review — the author inspects the local evidence and chooses whether to publish it (D-132).
 - `svjeez render` — removed; prints usage (D-76).
 - Releasing a never-published package from CI — the first version needs `claim` from a maintainer because npm trusts a workflow only for a package it already has (header of `scripts/release.ts`).
 - Transparent MP4 — MP4 cannot carry alpha here; throws (video README).
